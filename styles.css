@@ -1,0 +1,352 @@
+:root {
+  --bg-gradient-light: linear-gradient(135deg, #cce7ff, #e8d9ff);
+  --bg-gradient-dark: linear-gradient(135deg, #333, #555);
+  --card-bg-light: #fff;
+  --card-bg-dark: #444;
+  --text-light: #333;
+  --text-dark: #fff;
+  --button-bg-light: #e6f7f1;
+  --button-bg-dark: #007d68;
+  --button-text-light: #007d68;
+  --button-text-dark: #e6f7f1;
+  --visualizer-bg: #007d68;
+  --visualizer-bg-dark: #e6f7f1;
+  --fade-duration: 0.5s;
+  --transition-duration: 0.3s;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: var(--bg-gradient-light);
+  color: var(--text-light);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10px 0;
+  transition: background-color 0.5s, color 0.5s;
+}
+
+body.dark-theme {
+  background: var(--bg-gradient-dark);
+  color: var(--text-dark);
+}
+
+.fade-in {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.fade-in-item {
+  animation: fadeInItem 0.5s ease-in-out;
+}
+
+.scale-in {
+  animation: scaleIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInItem {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.menu {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.menu-button {
+  background: #007d68;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-duration) ease;
+}
+
+.menu-button:hover {
+  background: #005f50;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  width: 200px;
+  transition: opacity var(--transition-duration) ease, transform var(--transition-duration) ease;
+}
+
+body.dark-theme .menu-panel {
+  background: #444;
+  border-color: #666;
+}
+
+.hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.theme-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #007d68;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px;
+  transition: transform var(--transition-duration) ease, background-color var(--transition-duration) ease;
+  overflow: hidden;
+}
+
+.theme-button:hover {
+  transform: scale(1.05);
+  background: #005f50;
+}
+
+.theme-icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.player {
+  background: var(--card-bg-light);
+  border-radius: 12px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  text-align: center;
+  width: 350px;
+  margin-top: 20px;
+  transition: background-color 0.5s, color 0.5s;
+}
+
+body.dark-theme .player {
+  background: var(--card-bg-dark);
+}
+
+.current-sound h2 {
+  margin: 0;
+  font-size: 1.5em;
+  transition: color 0.5s;
+}
+
+.controls {
+  margin-top: 20px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+select, button {
+  padding: 10px;
+  margin: 5px 0;
+  width: 48%;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--button-bg-light);
+  color: var(--button-text-light);
+  cursor: pointer;
+  transition: transform 0.2s, background-color var(--transition-duration) ease, color var(--transition-duration) ease;
+}
+
+select {
+  width: 100%;
+  animation: fadeIn 1s ease-in-out;
+}
+
+body.dark-theme select,
+body.dark-theme button {
+  background: var(--button-bg-dark);
+  color: var(--button-text-dark);
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+button:disabled {
+  background: #eaeaea;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.visualization {
+  width: 100%;
+  height: 10px;
+  background: #ccc;
+  border-radius: 5px;
+  margin-top: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+#visualizer {
+  height: 100%;
+  width: 0%;
+  background: var(--visualizer-bg);
+  transition: width 0.1s linear;
+}
+
+body.dark-theme #visualizer {
+  background: var(--visualizer-bg-dark);
+}
+
+.history {
+  background: var(--card-bg-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  margin-top: 20px;
+  width: 350px;
+  height: 200px;
+  overflow-y: auto;
+  transition: background-color 0.5s, color 0.5s;
+}
+
+body.dark-theme .history {
+  background: var(--card-bg-dark);
+}
+
+.history h3 {
+  margin-top: 0;
+  font-size: 1.2em;
+}
+
+.history ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.history li {
+  padding: 5px 0;
+  border-bottom: 1px solid #ddd;
+  transition: background-color 0.3s ease;
+}
+
+.history li:hover {
+  background: rgba(0, 125, 104, 0.1);
+}
+
+body.dark-theme .history li {
+  border-color: #666;
+}
+
+.status {
+  background: var(--card-bg-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  margin-top: 10px;
+  width: 200px;
+  font-size: 14px;
+  position: absolute;
+  top: 50px;
+  right: 250px;
+  transition: transform 0.3s, opacity 0.3s, background-color 0.5s, color 0.5s;
+}
+
+body.dark-theme .status {
+  background: var(--card-bg-dark);
+}
+
+.status h3 {
+  margin-top: 0;
+  font-size: 1em;
+}
+
+.status p {
+  font-weight: bold;
+  transition: color 0.5s;
+}
+
+.history ul::-webkit-scrollbar {
+  width: 8px;
+}
+
+.history ul::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.history ul::-webkit-scrollbar-thumb {
+  background-color: #007d68;
+  border-radius: 4px;
+  border: 2px solid #f1f1f1;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+@media (max-width: 500px) {
+  .player, .history, .status {
+    width: 90%;
+    right: auto; 
+  }
+}
+
+.status p#connection-status {
+  color: var(--button-bg-dark);
+}
+
+body.dark-theme .status p#connection-status {
+  color: var(--button-bg-light);
+}
+
+.status p#mqtt-broker {
+  color: var(--text-light);
+}
+
+body.dark-theme .status p#mqtt-broker {
+  color: var(--text-dark);
+}
+
+.status p#mqtt-topic {
+  color: #007d68;
+}
+
+body.dark-theme .status p#mqtt-topic {
+  color: #e6f7f1;
+}
+
+

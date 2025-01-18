@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buzzer Control</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app" class="fade-in">
+    <div class="menu">
+      <button id="menu-toggle" class="menu-button">☰</button>
+      <div id="menu-panel" class="menu-panel hidden fade-in">
+        <button id="theme-toggle" class="theme-button">
+          <span id="theme-icon" class="theme-icon">🌞</span> Switch to Dark Theme
+        </button>
+        <button id="status-toggle" class="theme-button">
+          <span class="theme-icon">🔌</span> Show Status
+        </button>
+      </div>
+    </div>
+
+    <!-- Status panel with extra info, hidden by default, positioned further left -->
+    <div class="status hidden scale-in" id="status-panel">
+      <h3>Connection Status <span class="theme-icon">🔌</span></h3>
+      <p id="connection-status">Unknown</p>
+      <!-- Additional info -->
+      <p id="mqtt-broker">Broker: N/A</p>
+      <p id="mqtt-topic">Topic: N/A</p>
+    </div>
+
+    <div class="player scale-in">
+      <div class="current-sound">
+        <h2 id="sound-title">Current Sound: None</h2>
+      </div>
+      <div class="controls">
+        <select id="sound-selector">
+          <option value="" disabled selected>Select a Sound</option>
+        </select>
+        <div class="button-group">
+          <button id="prev-button">⏮️</button>
+          <button id="play-button">▶️</button>
+          <button id="stop-button" disabled>⏹️</button>
+          <button id="next-button">⏭️</button>
+        </div>
+        <button id="demo-button">🎵 Demo</button>
+      </div>
+      <div class="visualization">
+        <div id="visualizer"></div>
+      </div>
+    </div>
+
+    <div class="history">
+      <h3>Playback History</h3>
+      <ul id="song-history"></ul>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
