@@ -1,3 +1,4 @@
+// server.js
 const mqtt = require('mqtt');
 const open = require('open');
 const http = require('http');
@@ -5,21 +6,18 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./database');
 
-
-// Настройка MQTT клиента с использованием TLS MQTT (порт 8883)
 const mqttClient = mqtt.connect({
   host: 'b37a444670f74de9a3e20ecd2b8c1e1b.s1.eu.hivemq.cloud',
   port: 8883,
-  protocol: 'mqtts', // Указываем 'mqtts' для TLS
+  protocol: 'mqtts',
   username: 'METRION',
   password: 'Father.password1'
 });
 
 const PORT = 8080;
 
-// Подписка на топик
 mqttClient.on('connect', () => {
-  mqttClient.subscribe('gw/thing/os774ef/set', (err) => { // Изменено топик подписки
+  mqttClient.subscribe('gw/thing/os774ef/set', (err) => {
     if (!err) {
       console.log('Subscribed to gw/thing/os774ef/set');
     } else {
@@ -28,7 +26,6 @@ mqttClient.on('connect', () => {
   });
 });
 
-// Обработка сообщений из топика
 mqttClient.on('message', (topic, message) => {
   console.log(`Received message on topic ${topic}: ${message}`);
   if (topic === 'gw/thing/os774ef/set') {
@@ -37,7 +34,7 @@ mqttClient.on('message', (topic, message) => {
       if (data.type === 'play_song') {
         const song = data.song;
         console.log(`Current song set to: ${song}`);
-        saveHistory(song); // Сохраняем историю прослушивания и обновляем play_count
+        saveHistory(song);
       }
     } catch (error) {
       console.error('Error parsing message:', error);
@@ -45,48 +42,38 @@ mqttClient.on('message', (topic, message) => {
   }
 });
 
-// Сохранение истории прослушивания в базу данных и обновление play_count
 function saveHistory(song) {
   const now = new Date();
   const formattedTime = now.toISOString();
-
   const songName = song.replace('.mp3', '');
 
   db.serialize(() => {
-    // Вставка в history
-    db.run(
-      `INSERT INTO history (song, timestamp) VALUES (?, ?)`,
-      [song, formattedTime],
-      function(err) {
-        if (err) {
-          return console.error('Error saving history:', err.message);
-        }
-        console.log(`Saved song to history with ID: ${this.lastID} at ${formattedTime}`);
+    db.run(`
+      INSERT INTO history (song, timestamp) VALUES (?, ?)
+    `, [song, formattedTime], function(err) {
+      if (err) {
+        console.error('Error saving history:', err.message);
+      } else {
+        console.log(`Saved song to history (ID: ${this.lastID}) at ${formattedTime}`);
       }
-    );
+    });
 
-    // Обновление play_count в songs
-    db.run(
-      `UPDATE songs SET play_count = play_count + 1 WHERE name = ?`,
-      [songName],
-      function(err) {
-        if (err) {
-          return console.error('Error updating play_count:', err.message);
-        }
-        if (this.changes === 0) {
-          console.warn(`Song "${songName}" not found in songs table.`);
-        } else {
-          console.log(`Updated play_count for song: ${songName}`);
-        }
+    db.run(`
+      UPDATE songs SET play_count = play_count + 1 WHERE name = ?
+    `, [songName], function(err) {
+      if (err) {
+        console.error('Error updating play_count:', err.message);
+      } else if (this.changes === 0) {
+        console.warn(`Song "${songName}" not found in songs table.`);
+      } else {
+        console.log(`Updated play_count for: ${songName}`);
       }
-    );
+    });
   });
 }
 
-// Создание HTTP сервера для обслуживания файлов и API
 const server = http.createServer((req, res) => {
   if (req.url === '/history' && req.method === 'GET') {
-    // Получение истории прослушивания из базы данных
     db.all(`SELECT song, timestamp FROM history ORDER BY timestamp DESC`, [], (err, rows) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -99,9 +86,7 @@ const server = http.createServer((req, res) => {
       console.log('Sent history data to client');
     });
   } else if (req.url === '/history' && req.method === 'DELETE') {
-    // Обработка запроса на очистку истории и сброс play_count
     db.serialize(() => {
-      // Очистка таблицы history
       db.run(`DELETE FROM history`, [], function(err) {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -111,7 +96,6 @@ const server = http.createServer((req, res) => {
         }
         console.log('History cleared successfully');
 
-        // Сброс play_count для всех песен
         db.run(`UPDATE songs SET play_count = 0`, [], function(err) {
           if (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -125,6 +109,18 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ message: 'History and play counts cleared successfully' }));
         });
       });
+    });
+  } else if (req.url === '/songs' && req.method === 'GET') {
+    db.all(`SELECT * FROM songs`, [], (err, rows) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to retrieve songs' }));
+        console.error('Error retrieving songs:', err.message);
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(rows));
+      console.log('Sent songs data to client');
     });
   } else {
     let filePath = '.' + req.url;
@@ -140,9 +136,7 @@ const server = http.createServer((req, res) => {
       '.gif': 'image/gif',
       '.svg': 'image/svg+xml',
       '.json': 'application/json'
-      // Добавьте другие типы MIME при необходимости
     };
-
     const contentType = mimeTypes[extname] || 'application/octet-stream';
 
     fs.readFile(filePath, (error, content) => {
@@ -154,7 +148,7 @@ const server = http.createServer((req, res) => {
           });
         } else {
           res.writeHead(500);
-          res.end(`Sorry, check with the site admin for error: ${error.code} ..\n`);
+          res.end(`Server error: ${error.code} ..\n`);
           res.end();
         }
       } else {
@@ -165,7 +159,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// Запуск HTTP сервера
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   open(`http://localhost:${PORT}`)

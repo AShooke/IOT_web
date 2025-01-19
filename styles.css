@@ -445,3 +445,20 @@ body.dark-theme .clear-history-button:active {
   100% { transform: scale(1); }
 }
 
+#smart-order-view {
+  margin-top: 10px;
+  background: rgba(255,255,255,0.6);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+#smart-order-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#smart-order-list li {
+  border-bottom: 1px solid #ccc;
+  padding: 3px 0;
+}
