@@ -20,11 +20,9 @@
       </div>
     </div>
 
-    <!-- Status panel with extra info, hidden by default, positioned further left -->
     <div class="status hidden scale-in" id="status-panel">
       <h3>Connection Status <span class="theme-icon">🔌</span></h3>
       <p id="connection-status">Unknown</p>
-      <!-- Additional info -->
       <p id="mqtt-broker">Broker: N/A</p>
       <p id="mqtt-topic">Topic: N/A</p>
     </div>
@@ -35,7 +33,7 @@
       </div>
       <div class="controls">
         <select id="sound-selector">
-          <option value="" disabled selected>Select a Sound</option>
+          <option value="" disabled selected hidden>Select a Sound</option>
         </select>
         <div class="button-group">
           <button id="prev-button">⏮️</button>
@@ -43,7 +41,11 @@
           <button id="stop-button" disabled>⏹️</button>
           <button id="next-button">⏭️</button>
         </div>
-        <button id="demo-button">🎵 Demo</button>
+        <button id="smart-shuffle-button" class="toggle-button">
+          <span class="icon off">🧠</span>
+          <span class="icon on hidden">✨🧠</span>
+          Smart Shuffle
+        </button>
       </div>
       <div class="visualization">
         <div id="visualizer"></div>
@@ -52,6 +54,7 @@
 
     <div class="history">
       <h3>Playback History</h3>
+      <button id="clear-history-btn" class="clear-history-button">🗑️ Clear</button>
       <ul id="song-history"></ul>
     </div>
   </div>

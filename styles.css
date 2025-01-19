@@ -217,11 +217,15 @@ button:disabled {
   position: relative;
 }
 
+body.dark-theme .visualization {
+  background-color: #333;
+}
+
 #visualizer {
   height: 100%;
+  background-color: #4caf50;
   width: 0%;
-  background: var(--visualizer-bg);
-  transition: width 0.1s linear;
+  transition: none;
 }
 
 body.dark-theme #visualizer {
@@ -349,4 +353,95 @@ body.dark-theme .status p#mqtt-topic {
   color: #e6f7f1;
 }
 
+.clear-history-button {
+  background: #ff6666;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  width: 140px;
+  height: 40px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: background-color 0.3s, transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clear-history-button:hover {
+  background: #ff3333;
+  transform: scale(1.05);
+}
+
+.clear-history-button:active {
+  background: #cc0000;
+  transform: scale(0.95);
+}
+
+body.dark-theme .clear-history-button {
+  background: #ff4d4d;
+  color: #fff;
+}
+
+body.dark-theme .clear-history-button:hover {
+  background: #ff1a1a;
+}
+
+body.dark-theme .clear-history-button:active {
+  background: #cc0000;
+}
+
+#sound-selector option[disabled] {
+  font-weight: bold;
+  color: #888;
+}
+
+/* Smart Shuffle Button Styles */
+#smart-shuffle-button {
+  position: relative;
+  padding: 10px 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  background: var(--button-bg-light);
+  color: var(--button-text-light);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color var(--transition-duration), transform var(--transition-duration);
+  display: block;
+  margin: 20px auto 0;
+}
+
+#smart-shuffle-button .icon {
+  margin-right: 8px;
+  transition: opacity var(--transition-duration);
+}
+
+#smart-shuffle-button .icon.on {
+  opacity: 0;
+}
+
+#smart-shuffle-button.active {
+  background: var(--button-bg-dark);
+  color: var(--button-text-dark);
+  animation: toggleAnimation 0.5s;
+}
+
+#smart-shuffle-button.active .icon.on {
+  opacity: 1;
+}
+
+#smart-shuffle-button.active .icon.off {
+  opacity: 0;
+}
+
+@keyframes toggleAnimation {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
 
