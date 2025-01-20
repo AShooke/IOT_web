@@ -1,12 +1,3 @@
-// app.js
-
-/********************************************
- * app.js — основной клиентский скрипт
- ********************************************/
-
-// ========================
-//  Элементы
-// ========================
 const soundSelector = document.getElementById('sound-selector');
 const soundTitle = document.getElementById('sound-title');
 const playButton = document.getElementById('play-button');
@@ -19,7 +10,6 @@ const songHistory = document.getElementById('song-history');
 const connectionStatus = document.getElementById('connection-status');
 const prevButton = document.getElementById('prev-button');
 const nextButton = document.getElementById('next-button');
-const visualizer = document.getElementById('visualizer');
 const statusToggle = document.getElementById('status-toggle');
 const statusPanel = document.getElementById('status-panel');
 const mqttBrokerInfo = document.getElementById('mqtt-broker');
@@ -54,8 +44,109 @@ mqttClient.on('error', (err) => {
   console.error('MQTT connection error:', err);
   connectionStatus.textContent = 'Connection error';
 });
+mqttClient.subscribe('gw/thing/os774ef/cmd');
+mqttClient.subscribe('gw/thing/os774ef/data');
+mqttClient.subscribe('gw/thing/os774ef/status');
 mqttBrokerInfo.textContent = 'Broker: wss://b37a444670f74de9a3e20ecd2b8c1e1b.s1.eu.hivemq.cloud:8884/mqtt';
 mqttTopicInfo.textContent = 'Topic: gw/thing/os774ef/set';
+
+let currentSong = '';
+let autoPlayTimer = null;
+// Подписываемся на сообщения
+let accessTimer = null;
+let statusTimer = null;
+
+// Function to set status to offline
+function setStatusOffline() {
+  console.log('Setting status to offline due to inactivity.');
+  mqttClient.publish('gw/thing/os774ef/status', JSON.stringify({ status: 'offline' }), { retain: true });
+  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
+}
+
+// Function to set access_granted to 0
+function setAccessGrantedFalse() {
+  console.log('Setting access_granted to 0 due to inactivity.');
+  mqttClient.publish('gw/thing/os774ef/cmd', JSON.stringify({ name: 'access_granted', value: 0 }), { retain: true });
+}
+
+// Start the timers immediately upon application start
+function startTimers() {
+  // Start status timer
+  statusTimer = setTimeout(() => {
+    setStatusOffline();
+  }, 30000); // 30 seconds
+
+  // Start cmd timer
+  cmdTimer = setTimeout(() => {
+    setAccessGrantedFalse();
+  }, 30000); // 30 seconds
+}
+
+// MQTT message handler
+mqttClient.on('message', (topic, message, packet) => {
+  if (packet.retain) {
+    console.log('Ignoring retained message on topic', topic);
+    return;
+  }
+
+  // ======= STATUS TOPIC =======
+  if (topic === 'gw/thing/os774ef/status') {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log(`Received message on topic ${topic}: ${message}`);
+
+      if (data.status === 'online') {
+        // Reset the status timer
+        if (statusTimer) {
+          clearTimeout(statusTimer);
+        }
+        statusTimer = setTimeout(() => {
+          setStatusOffline();
+        }, 30000); // 30 seconds
+      }
+    } catch (error) {
+      console.error('Error parsing status message:', error);
+    }
+  }
+
+  // ======= CMD TOPIC =======
+  else if (topic === 'gw/thing/os774ef/cmd') {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log(`Received message on topic ${topic}: ${message}`);
+
+      // If access_granted = 1
+      if (data.name === 'access_granted' && data.value === 1) {
+        accessGranted = true;
+
+        // Reset the cmd timer
+        if (cmdTimer) {
+          clearTimeout(cmdTimer);
+        }
+        cmdTimer = setTimeout(() => {
+          setAccessGrantedFalse();
+        }, 30000); // 30 seconds
+
+        // Reset the access timer
+        if (accessTimer) {
+          clearTimeout(accessTimer);
+        }
+        accessTimer = setTimeout(() => {
+          accessGranted = false;
+          console.log('Access revoked due to inactivity.');
+          // Add any additional logic to handle access revocation
+          stopSound();
+          stopVisualizer();
+        }, 30000); // 30 seconds
+      }
+    } catch (error) {
+      console.error('Error parsing cmd message:', error);
+    }
+  }
+});
+
+// Start the timers when the application starts
+startTimers();
 
 // ========================
 //  Загрузка списка песен
@@ -148,52 +239,49 @@ clearHistoryBtn.addEventListener('click', () => {
 //  Плеер (Play/Stop/Prev/Next)
 // ========================
 function playSound() {
+  stopSongTimer();
+  playButton.disabled = true;
+
   let list = isSmartShuffle ? smartOrder : normalOrder;
   if (currentIndex < 0 || currentIndex >= list.length) return;
 
   const song = list[currentIndex];
+  currentSong = `${song.name}.mp3`;
   mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({
     type: 'play_song',
-    song: `${song.name}.mp3`
-  }), (err) => {
+    song: currentSong,
+    time: Date.now()
+  }), { retain: true }, (err) => {
     if (err) {
       console.error('Error publishing play_song:', err);
     } else {
-      console.log(`Published play_song for ${song.name}.mp3`);
+      console.log(`Published play_song for ${currentSong}`);
     }
   });
   soundTitle.textContent = `Current Sound: ${song.name}`;
   isPlaying = true;
-  playButton.disabled = true;
   stopButton.disabled = false;
   addToHistory(song.name);
-  startVisualizer();
-  startProgressBar();
+  startSongTimer();
   console.log('Playing:', song.name);
-  
+
   // Синхронизируем select
   soundSelector.value = song.id;
+
+  // Enable the play button after 2 seconds
+  setTimeout(() => {
+    playButton.disabled = false;
+  }, 2000);
 }
 
 function stopSound() {
   if (!isPlaying) return;
-
-  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type:'stop_song' }), (err) => {
-    if (err) {
-      console.error('Error publishing stop_song:', err);
-    } else {
-      console.log('Published stop_song');
-    }
-  });
-  console.log('Stopping current sound');
+  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
+  soundTitle.textContent = `Current Sound: None`;
   isPlaying = false;
   playButton.disabled = false;
   stopButton.disabled = true;
-  soundTitle.textContent = 'Current Sound: None';
-
-  stopVisualizer();
-  stopProgressBar();
-  disableButtonsTemporarily();
+  stopSongTimer();
 }
 
 function prevSong() {
@@ -201,7 +289,7 @@ function prevSong() {
   if (!list.length) return;
 
   currentIndex = (currentIndex - 1 + list.length) % list.length;
-  stopProgressBar();
+  stopSongTimer();
   playSound();
   disableButtonsTemporarily();
 }
@@ -211,7 +299,7 @@ function nextSong() {
   if (!list.length) return;
 
   currentIndex = (currentIndex + 1) % list.length;
-  stopProgressBar();
+  stopSongTimer();
   playSound();
   disableButtonsTemporarily();
 }
@@ -228,39 +316,24 @@ function addToHistory(songName) {
 // ========================
 //  Визуализация (progress-bar)
 // ========================
-let visualizerInterval = null;
-function startVisualizer() {
-  visualizer.style.width = '0%';
-  let w = 0;
-  visualizerInterval = setInterval(() => {
-    w = (w >= 100) ? 0 : w + 1;
-    visualizer.style.width = `${w}%`;
-  }, 100);
-}
-function stopVisualizer() {
-  clearInterval(visualizerInterval);
-  visualizer.style.width = '0%';
+let songTimer = null;
+
+// Starts a 35-second timer to play the next song
+function startSongTimer() {
+  if (songTimer) {
+    clearTimeout(songTimer);
+  }
+  songTimer = setTimeout(() => {
+    nextSong();
+  }, 35000); // 35 seconds
 }
 
-function startProgressBar() {
-  stopProgressBar();
-  visualizer.style.transition = 'none';
-  visualizer.style.width = '0%';
-
-  void visualizer.offsetWidth; // reset trick
-
-  visualizer.style.transition = 'width 30s linear';
-  visualizer.style.width = '100%';
-  visualizer.addEventListener('transitionend', handleTransitionEnd);
-}
-function handleTransitionEnd() {
-  visualizer.removeEventListener('transitionend', handleTransitionEnd);
-  nextSong();
-}
-function stopProgressBar() {
-  visualizer.removeEventListener('transitionend', handleTransitionEnd);
-  visualizer.style.transition = 'none';
-  visualizer.style.width = '0%';
+// Stops the existing song timer
+function stopSongTimer() {
+  if (songTimer) {
+    clearTimeout(songTimer);
+    songTimer = null;
+  }
 }
 
 // ========================
@@ -417,3 +490,41 @@ function init() {
   fetchHistory();
 }
 init();
+
+
+//=======================================================
+
+const accessDeniedOverlay = document.createElement('div');
+accessDeniedOverlay.id = 'access-denied-overlay';
+accessDeniedOverlay.innerHTML = '<div class="access-denied-message">Access Denied</div>';
+document.body.appendChild(accessDeniedOverlay);
+
+let accessGranted = false;
+
+function checkAccess() {
+  if (!accessGranted) {
+    accessDeniedOverlay.classList.remove('hidden');
+  } else {
+    accessDeniedOverlay.classList.add('hidden');
+  }
+}
+
+setInterval(checkAccess, 1000);
+
+mqttClient.on('message', (topic, message) => {
+  if (topic === 'gw/thing/os774ef/set') {
+    console.log(`Received message on topic ${topic}: ${message}`);
+    try {
+      const data = JSON.parse(message.toString());
+      if (data.name === 'access_granted') {
+        accessGranted = data.value === 1;
+        if (!accessGranted) {
+          stopSound();
+          stopVisualizer();
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing message:', error);
+    }
+  }
+});

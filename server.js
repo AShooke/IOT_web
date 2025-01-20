@@ -17,17 +17,24 @@ const mqttClient = mqtt.connect({
 const PORT = 8080;
 
 mqttClient.on('connect', () => {
-  mqttClient.subscribe('gw/thing/os774ef/set', (err) => {
+  mqttClient.subscribe(['gw/thing/os774ef/set', 'gw/thing/os774ef/data', 'gw/thing/os774ef/status'], (err, granted) => {
     if (!err) {
-      console.log('Subscribed to gw/thing/os774ef/set');
+      console.log('Subscribed to gw/thing/os774ef/set and gw/thing/os774ef/data and gw/thing/os774ef/status');
     } else {
       console.error('Subscription error:', err);
     }
   });
 });
 
-mqttClient.on('message', (topic, message) => {
+
+mqttClient.on('message', (topic, message, packet) => {
+
+  if (packet.retain) {
+    console.log('Ignoring retained message on topic', topic);
+    return;
+  }
   console.log(`Received message on topic ${topic}: ${message}`);
+  
   if (topic === 'gw/thing/os774ef/set') {
     try {
       const data = JSON.parse(message.toString());
@@ -38,6 +45,15 @@ mqttClient.on('message', (topic, message) => {
       }
     } catch (error) {
       console.error('Error parsing message:', error);
+    }
+  } else if (topic === 'gw/thing/os774ef/data') {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log(`Data message received:`, data);
+      // Добавьте здесь нужную логику обработки сообщений из 'data' топика
+      // Например, вы можете сохранить дополнительные данные в базу или выполнить другие действия
+    } catch (error) {
+      console.error('Error parsing data message:', error);
     }
   }
 });

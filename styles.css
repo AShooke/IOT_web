@@ -9,8 +9,6 @@
   --button-bg-dark: #007d68;
   --button-text-light: #007d68;
   --button-text-dark: #e6f7f1;
-  --visualizer-bg: #007d68;
-  --visualizer-bg-dark: #e6f7f1;
   --fade-duration: 0.5s;
   --transition-duration: 0.3s;
 }
@@ -205,31 +203,6 @@ button:disabled {
   background: #eaeaea;
   color: #999;
   cursor: not-allowed;
-}
-
-.visualization {
-  width: 100%;
-  height: 10px;
-  background: #ccc;
-  border-radius: 5px;
-  margin-top: 15px;
-  overflow: hidden;
-  position: relative;
-}
-
-body.dark-theme .visualization {
-  background-color: #333;
-}
-
-#visualizer {
-  height: 100%;
-  background-color: #4caf50;
-  width: 0%;
-  transition: none;
-}
-
-body.dark-theme #visualizer {
-  background: var(--visualizer-bg-dark);
 }
 
 .history {
@@ -461,4 +434,43 @@ body.dark-theme .clear-history-button:active {
 #smart-order-list li {
   border-bottom: 1px solid #ccc;
   padding: 3px 0;
+}
+
+#access-denied-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity 0.5s ease-in-out;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#access-denied-overlay .access-denied-message {
+  background: #ff4d4d;
+  color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  font-size: 24px;
+  text-align: center;
+  animation: shake 0.5s infinite;
+}
+
+#access-denied-overlay:not(.hidden) {
+  opacity: 1;
+  pointer-events: all;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
 }
