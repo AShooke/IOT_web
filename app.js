@@ -58,6 +58,8 @@ let statusTimer = null;
 
 // Function to set status to offline
 function setStatusOffline() {
+  if (isStatusOfflineSet) return; // Избегаем повторного вызова
+  isStatusOfflineSet = true;
   console.log('Setting status to offline due to inactivity.');
   mqttClient.publish('gw/thing/os774ef/status', JSON.stringify({ status: 'offline' }), { retain: true });
   mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
@@ -65,6 +67,8 @@ function setStatusOffline() {
 
 // Function to set access_granted to 0
 function setAccessGrantedFalse() {
+  if (isAccessGrantedSet) return; // Избегаем повторного вызова
+  isAccessGrantedSet = true;
   console.log('Setting access_granted to 0 due to inactivity.');
   mqttClient.publish('gw/thing/os774ef/cmd', JSON.stringify({ name: 'access_granted', value: 0 }), { retain: true });
 }
@@ -383,11 +387,15 @@ function updateButtonStates() {
 // ========================
 //  SMART SHUFFLE
 // ========================
+// При нажатии кнопки Smart Shuffle
+
 smartShuffleButton.addEventListener('click', () => {
   if (!isSmartShuffle) {
+    // Включаем
     smartShuffleButton.classList.add('active');
     enableSmartShuffle();
   } else {
+    // Выключаем
     smartShuffleButton.classList.remove('active');
     disableSmartShuffle();
   }
@@ -398,26 +406,27 @@ function enableSmartShuffle() {
   if (currentIndex < 0 || currentIndex >= normalOrder.length) return;
 
   const currentSong = normalOrder[currentIndex];
+  // Формируем smartOrder
   smartOrder = buildSmartOrder(currentSong);
 
-  // find current track in smartOrder
-  const idx = smartOrder.findIndex(s => s.id === currentSong.id);
-  currentIndex = (idx >= 0) ? idx : 0;
+  // Текущий трек уже стоит на позиции 0
+  currentIndex = 0;
 
   showSmartOrder();
-  // Синхронизируем select
-  soundSelector.value = smartOrder[currentIndex].id;
+  // Ставим <select> на текущую песню
+  soundSelector.value = currentSong.id;
 }
+
 
 function disableSmartShuffle() {
   isSmartShuffle = false;
   if (!smartOrder.length) return;
 
-  // берем текущий трек
-  let curSong = smartOrder[currentIndex];
-  // ищем в normalOrder
-  let idx = normalOrder.findIndex(s => s.id === curSong.id);
+  const curSong = smartOrder[currentIndex];
+  // Ищем curSong в normalOrder
+  const idx = normalOrder.findIndex(s => s.id === curSong.id);
   if (idx >= 0) {
+    // Круговой сдвиг
     normalOrder = normalOrder.slice(idx).concat(normalOrder.slice(0, idx));
     currentIndex = 0;
   }
@@ -426,60 +435,91 @@ function disableSmartShuffle() {
   soundSelector.value = normalOrder[currentIndex].id;
 }
 
-// Отображение списка smartOrder
+
+function buildSmartOrder(currentSong) {
+  // Берём все треки, кроме currentSong
+  const otherSongs = songs.filter(s => s.id !== currentSong.id);
+
+  // Рассчитываем score для каждого
+  const arr = otherSongs.map(s => ({
+    song: s,
+    score: calcScore(currentSong, s)
+  }));
+
+  // Сортировка по убыванию score
+  arr.sort((a, b) => b.score - a.score);
+
+  // Получаем массив объектов
+  const sorted = arr.map(x => x.song);
+
+  // Вставляем currentSong в начало
+  sorted.unshift(currentSong);
+
+  return sorted;
+}
+
+
 function showSmartOrder() {
   smartOrderView.classList.remove('hidden');
   smartOrderList.innerHTML = '';
   smartOrder.forEach((song, i) => {
     const li = document.createElement('li');
     li.textContent = `${i+1}. ${song.name}`;
+    // Подсветим текущий
     if (i === currentIndex) {
       li.style.fontWeight = 'bold';
     }
     smartOrderList.appendChild(li);
   });
 }
+
+
 function hideSmartOrder() {
   smartOrderView.classList.add('hidden');
   smartOrderList.innerHTML = '';
 }
 
-// Построение умного порядка
-function buildSmartOrder(currentSong) {
-  // Для каждого s считаем distance
-  const arr = songs.map(s => {
-    return { song: s, dist: calcDistance(currentSong, s) };
-  });
-  arr.sort((a,b) => a.dist - b.dist);
-  return arr.map(x => x.song);
-}
-
-// Считаем distance (Camelot, BPM, genre, popularity)
-function calcDistance(s1, s2) {
+function calcScore(s1, s2) {
+  
   const cDist = camelotDistance(s1.camelot, s2.camelot);
-  const bpmDiff = Math.abs(s1.bpm - s2.bpm);
-  const gDist = (s1.genre === s2.genre) ? 0 : 1;
-  const popDiff = Math.abs(s1.play_count - s2.play_count);
+  const cScore = (12 - cDist);
 
-  const wC = 2, wB = 0.1, wG = 5, wP = 0.05;
-  return wC*cDist + wB*bpmDiff + wG*gDist + wP*popDiff;
+  const bpmDiff = Math.abs(s1.bpm - s2.bpm);
+  const bpmScore = 200 - bpmDiff;  // если diff=0 => 200
+  
+  // Жанр: +100 если совпал, 0 если нет
+  const genreScore = (s1.genre === s2.genre) ? 100 : 0;
+
+  // Популярность: берём play_count напрямую (чем больше, тем лучше)
+  const popScore = s2.play_count;
+
+  // Веса
+  const wC = 1;   // Вес Camelot
+  const wB = 0.2; // Вес BPM
+  const wG = 2;   // Вес жанра
+  const wP = 0.1; // Вес популярности
+
+  // Итог: чем больше, тем лучше
+  return wC*cScore + wB*bpmScore + wG*genreScore + wP*popScore;
 }
 
 function camelotDistance(c1, c2) {
   if (c1 === c2) return 0;
   const {num: n1, let: l1} = parseCamelot(c1);
   const {num: n2, let: l2} = parseCamelot(c2);
+
   const diffNum = Math.min(
-    Math.abs(n1-n2),
-    12 - Math.abs(n1-n2)
+    Math.abs(n1 - n2),
+    12 - Math.abs(n1 - n2)
   );
-  const diffLet = (l1===l2) ? 0 : 1;
+  const diffLet = (l1 === l2) ? 0 : 1;
   return diffNum + diffLet;
 }
+
 function parseCamelot(c) {
-  const m = c.match(/^(\d{1,2})(A|B)$/);
-  if (!m) return { num:0, let:'A' };
-  return { num: parseInt(m[1],10), let:m[2] };
+  const match = c.match(/^(\d{1,2})(A|B)$/);
+  if (!match) return { num:0, let:'A' };
+  return { num: parseInt(match[1],10), let: match[2] };
 }
 
 // ========================

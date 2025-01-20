@@ -206,14 +206,17 @@ button:disabled {
 }
 
 .history {
+  position: absolute;
+  top: 30px;
+  left: 70px;
   background: var(--card-bg-light);
   border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 15px;
-  margin-top: 20px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  padding: 20px;
   width: 350px;
-  height: 200px;
-  overflow-y: auto;
+  height: 600px; /* Fixed height */
+  text-align: center;
+  overflow-y: auto; /* Enable scrolling if content overflows */
   transition: background-color 0.5s, color 0.5s;
 }
 
@@ -223,7 +226,8 @@ body.dark-theme .history {
 
 .history h3 {
   margin-top: 0;
-  font-size: 1.2em;
+  font-size: 1.5em;
+  transition: color 0.5s;
 }
 
 .history ul {
@@ -283,7 +287,7 @@ body.dark-theme .status {
 
 .history ul::-webkit-scrollbar-thumb {
   background-color: #007d68;
-  border-radius: 4px;
+  border-radius: 12px;
   border: 2px solid #f1f1f1;
 }
 
