@@ -1,10 +1,8 @@
 services:
   app:
     build: .
-    image: shooke/iot_web:latest
     ports:
       - "8080:8080"
     container_name: iot_web
     volumes:
-      - ./data:/app/data # Монтирование директории для базы данных
-    restart: unless-stoppe
+      - .:/app
