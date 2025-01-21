@@ -7,4 +7,4 @@ services:
     container_name: iot_web
     volumes:
       - ./data:/app/data # Монтирование директории для базы данных
-    restart: unless-stopped
+    restart: unless-stoppe
