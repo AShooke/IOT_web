@@ -32,9 +32,9 @@ let currentIndex = -1;
 let isPlaying = false;
 
 // MQTT
-const mqttClient = mqtt.connect('wss://b37a444670f74de9a3e20ecd2b8c1e1b.s1.eu.hivemq.cloud:8884/mqtt', {
-  username: 'METRION',
-  password: 'Father.password1'
+const mqttClient = mqtt.connect('ws://147.232.205.176:8000/mqtt', {
+  username: 'maker',
+  password: 'mother.mqtt.password'
 });
 mqttClient.on('connect', () => {
   console.log('Connected to MQTT broker');
@@ -44,46 +44,41 @@ mqttClient.on('error', (err) => {
   console.error('MQTT connection error:', err);
   connectionStatus.textContent = 'Connection error';
 });
-mqttClient.subscribe('gw/thing/os774ef/cmd');
-mqttClient.subscribe('gw/thing/os774ef/data');
-mqttClient.subscribe('gw/thing/os774ef/status');
-mqttBrokerInfo.textContent = 'Broker: wss://b37a444670f74de9a3e20ecd2b8c1e1b.s1.eu.hivemq.cloud:8884/mqtt';
-mqttTopicInfo.textContent = 'Topic: gw/thing/os774ef/set';
+mqttClient.subscribe('kpi/solaris/thing/os774ef/cmd');
+mqttClient.subscribe('kpi/solaris/thing/os774ef/data');
+mqttClient.subscribe('kpi/solaris/thing/os774ef/status');
+mqttBrokerInfo.textContent = 'Broker: ws://147.232.205.176:8000/mqtt';
+mqttTopicInfo.textContent = 'Topic: kpi/solaris/thing/os774ef/set';
 
 let currentSong = '';
 let autoPlayTimer = null;
-// Подписываемся на сообщения
 let accessTimer = null;
 let statusTimer = null;
 
 // Function to set status to offline
 function setStatusOffline() {
-  if (isStatusOfflineSet) return; // Избегаем повторного вызова
-  isStatusOfflineSet = true;
+  /*if (isStatusOfflineSet) return; // Избегаем повторного вызова
+  isStatusOfflineSet = true;*/
   console.log('Setting status to offline due to inactivity.');
-  mqttClient.publish('gw/thing/os774ef/status', JSON.stringify({ status: 'offline' }), { retain: true });
-  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
+  mqttClient.publish('kpi/solaris/thing/os774ef/status', JSON.stringify({ status: 'offline' }), { retain: true });
+  mqttClient.publish('kpi/solaris/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
 }
 
-// Function to set access_granted to 0
 function setAccessGrantedFalse() {
-  if (isAccessGrantedSet) return; // Избегаем повторного вызова
-  isAccessGrantedSet = true;
+  /*if (isAccessGrantedSet) return; // Избегаем повторного вызова
+  isAccessGrantedSet = true;*/
   console.log('Setting access_granted to 0 due to inactivity.');
-  mqttClient.publish('gw/thing/os774ef/cmd', JSON.stringify({ name: 'access_granted', value: 0 }), { retain: true });
+  mqttClient.publish('kpi/solaris/thing/os774ef/data', JSON.stringify({ name: 'access_granted', value: 0 }), { retain: true });
 }
 
-// Start the timers immediately upon application start
 function startTimers() {
-  // Start status timer
   statusTimer = setTimeout(() => {
     setStatusOffline();
-  }, 30000); // 30 seconds
+  }, 30000); 
 
-  // Start cmd timer
   cmdTimer = setTimeout(() => {
     setAccessGrantedFalse();
-  }, 30000); // 30 seconds
+  }, 30000); 
 }
 
 // MQTT message handler
@@ -94,7 +89,7 @@ mqttClient.on('message', (topic, message, packet) => {
   }
 
   // ======= STATUS TOPIC =======
-  if (topic === 'gw/thing/os774ef/status') {
+  if (topic === 'kpi/solaris/thing/os774ef/status') {
     try {
       const data = JSON.parse(message.toString());
       console.log(`Received message on topic ${topic}: ${message}`);
@@ -114,12 +109,11 @@ mqttClient.on('message', (topic, message, packet) => {
   }
 
   // ======= CMD TOPIC =======
-  else if (topic === 'gw/thing/os774ef/cmd') {
+  else if (topic === 'kpi/solaris/thing/os774ef/data') {
     try {
       const data = JSON.parse(message.toString());
       console.log(`Received message on topic ${topic}: ${message}`);
 
-      // If access_granted = 1
       if (data.name === 'access_granted' && data.value === 1) {
         accessGranted = true;
 
@@ -129,7 +123,7 @@ mqttClient.on('message', (topic, message, packet) => {
         }
         cmdTimer = setTimeout(() => {
           setAccessGrantedFalse();
-        }, 30000); // 30 seconds
+        }, 30000);
 
         // Reset the access timer
         if (accessTimer) {
@@ -138,10 +132,8 @@ mqttClient.on('message', (topic, message, packet) => {
         accessTimer = setTimeout(() => {
           accessGranted = false;
           console.log('Access revoked due to inactivity.');
-          // Add any additional logic to handle access revocation
           stopSound();
-          stopVisualizer();
-        }, 30000); // 30 seconds
+        }, 30000); 
       }
     } catch (error) {
       console.error('Error parsing cmd message:', error);
@@ -149,7 +141,6 @@ mqttClient.on('message', (topic, message, packet) => {
   }
 });
 
-// Start the timers when the application starts
 startTimers();
 
 // ========================
@@ -251,7 +242,7 @@ function playSound() {
 
   const song = list[currentIndex];
   currentSong = `${song.name}.mp3`;
-  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({
+  mqttClient.publish('kpi/solaris/thing/os774ef/set', JSON.stringify({
     type: 'play_song',
     song: currentSong,
     time: Date.now()
@@ -280,7 +271,7 @@ function playSound() {
 
 function stopSound() {
   if (!isPlaying) return;
-  mqttClient.publish('gw/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
+  mqttClient.publish('kpi/solaris/thing/os774ef/set', JSON.stringify({ type: 'stop_song', time: Date.now() }), { retain: true });
   soundTitle.textContent = `Current Sound: None`;
   isPlaying = false;
   playButton.disabled = false;
@@ -318,18 +309,18 @@ function addToHistory(songName) {
 }
 
 // ========================
-//  Визуализация (progress-bar)
+//  таймер
 // ========================
 let songTimer = null;
 
-// Starts a 35-second timer to play the next song
+// Starts timer to play the next song
 function startSongTimer() {
   if (songTimer) {
     clearTimeout(songTimer);
   }
   songTimer = setTimeout(() => {
     nextSong();
-  }, 35000); // 35 seconds
+  }, 35000); 
 }
 
 // Stops the existing song timer
@@ -379,7 +370,7 @@ function disableButtonsTemporarily() {
   }, 2000);
 }
 function updateButtonStates() {
-  const btns = [playButton, stopButton, prevButton, nextButton];
+  const btns = [playButton, stopButton, prevButton, nextButton, smartShuffleButton];
   const isSongSelected = (currentIndex !== -1);
   btns.forEach(b => b.disabled = !isSongSelected);
 }
@@ -388,7 +379,7 @@ function updateButtonStates() {
 //  SMART SHUFFLE
 // ========================
 // При нажатии кнопки Smart Shuffle
-
+smartShuffleButton.disabled = true;
 smartShuffleButton.addEventListener('click', () => {
   if (!isSmartShuffle) {
     // Включаем
@@ -493,7 +484,6 @@ function calcScore(s1, s2) {
   // Популярность: берём play_count напрямую (чем больше, тем лучше)
   const popScore = s2.play_count;
 
-  // Веса
   const wC = 1;   // Вес Camelot
   const wB = 0.2; // Вес BPM
   const wG = 2;   // Вес жанра
@@ -551,20 +541,3 @@ function checkAccess() {
 
 setInterval(checkAccess, 1000);
 
-mqttClient.on('message', (topic, message) => {
-  if (topic === 'gw/thing/os774ef/set') {
-    console.log(`Received message on topic ${topic}: ${message}`);
-    try {
-      const data = JSON.parse(message.toString());
-      if (data.name === 'access_granted') {
-        accessGranted = data.value === 1;
-        if (!accessGranted) {
-          stopSound();
-          stopVisualizer();
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing message:', error);
-    }
-  }
-});
