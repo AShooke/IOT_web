@@ -16,9 +16,9 @@ const mqttClient = mqtt.connect({
 const PORT = 8080;
 
 mqttClient.on('connect', () => {
-  mqttClient.subscribe(['gw/thing/os774ef/set', 'gw/thing/os774ef/data', 'gw/thing/os774ef/status'], (err, granted) => {
+  mqttClient.subscribe(['kpi/solaris/thing/os774ef/set', 'kpi/solaris/thing/os774ef/data', 'kpi/solaris/thing/os774ef/status'], (err, granted) => {
     if (!err) {
-      console.log('Subscribed to gw/thing/os774ef/set, gw/thing/os774ef/data, and gw/thing/os774ef/status');
+      console.log('Subscribed to kpi/solaris/thing/os774ef/set, kpi/solaris/thing/os774ef/data, and kpi/solaris/thing/os774ef/status');
     } else {
       console.error('Subscription error:', err);
     }
@@ -32,7 +32,7 @@ mqttClient.on('message', (topic, message, packet) => {
   }
   console.log(`Received message on topic ${topic}: ${message}`);
   
-  if (topic === 'gw/thing/os774ef/set') {
+  if (topic === 'kpi/solaris/thing/os774ef/set') {
     try {
       const data = JSON.parse(message.toString());
       if (data.type === 'play_song') {
@@ -43,7 +43,7 @@ mqttClient.on('message', (topic, message, packet) => {
     } catch (error) {
       console.error('Error parsing message:', error);
     }
-  } else if (topic === 'gw/thing/os774ef/data') {
+  } else if (topic === 'kpi/solaris/thing/os774ef/data') {
     try {
       const data = JSON.parse(message.toString());
       console.log(`Data message received:`, data);
